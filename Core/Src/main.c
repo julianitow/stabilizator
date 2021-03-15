@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "stdio.h"
+#include "retarget.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -47,8 +49,16 @@ UART_HandleTypeDef huart2;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 128 * 40,
   .priority = (osPriority_t) osPriorityNormal,
+};
+
+/* Definitions of TaskNumber */
+osThreadId_t numberTaskHandle;
+const osThreadAttr_t numberTask_attributes = {
+		.name ="numberTask",
+		.stack_size = 128 * 40,
+		.priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
 
@@ -59,6 +69,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void *argument);
+void TaskNumber(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -99,7 +110,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  RetargetInit(&huart2);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -124,7 +135,7 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
+  numberTaskHandle = osThreadNew(TaskNumber, NULL, &numberTask_attributes);
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -262,7 +273,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void TaskNumber(void *argument){
+	int number;
+	while(1){
+		printf("Task loop enter a number:\r");
+		scanf("%d", number);
+		number++;
+		printf("Number + 1: %d", number);
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -276,12 +295,18 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+  TickType_t xLastWakeTime;
   for(;;)
   {
+	  /*char buf[100];
+	  printf("\r\nYour name: ");
+	  scanf("%s", buf);
+	  printf("\r\nHello, %s!\r\n", buf);*/
+	  xLastWakeTime = xTaskGetTickCount();
+	  vTaskDelayUntil(&xLastWakeTime, 100);
 	  if(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_RESET){
-	  	          HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-	  	  }
-	  HAL_Delay(100);
+	  	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	  }
   }
   /* USER CODE END 5 */
 }
